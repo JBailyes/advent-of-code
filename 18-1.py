@@ -1,12 +1,9 @@
+import string
 from os.path import basename
+from typing import Dict, List, Set
 
 import colorama
 from colorama import Fore, Back
-from copy import deepcopy
-from computer import Computer
-from itertools import combinations
-from typing import Dict, List, Set
-import string
 
 
 class XY:
@@ -173,6 +170,7 @@ class CavesState:
         in_progress_paths: List[List[XY]] = [[self.position]]
         positions_visited: Set[XY] = {self.position}
         while len(in_progress_paths) > 0:
+            paths_to_bin = []
             for path in in_progress_paths:
                 pos = path[-1]
                 for neighbour in [pos.up(), pos.down(), pos.left(), pos.right()]:
@@ -184,7 +182,10 @@ class CavesState:
                         else:
                             in_progress_paths.append(path + [neighbour])  # Keep going
                         positions_visited.add(neighbour)
-                in_progress_paths.remove(path)  # Either extended paths were spawned or we got a dead-end
+                paths_to_bin.append(path)  # Either extended paths were spawned or we got a dead-end
+
+            for binned_path in paths_to_bin:
+                in_progress_paths.remove(binned_path)
         return paths
     
     def draw(self):
@@ -211,14 +212,9 @@ def minimum_steps(caves_state: CavesState) -> int:
     state_hash = caves_state.hash_string()
     if state_hash in solved_states:
         return solved_states[state_hash]
-    paths_to_keys = caves_state.find_keys()
-    if len(paths_to_keys) == 0:  # All the keys have been collected
+    if len(caves_state.keys) == 0:  # All the keys have been collected
         return 0
-    if len(paths_to_keys) == 1:
-        path_to_key = paths_to_keys[0]
-        steps = len(path_to_key.steps) + minimum_steps(caves_state.collect_key(path_to_key))
-        solved_states[state_hash] = steps
-        return steps
+    paths_to_keys = caves_state.find_keys()
     smallest_steps_to_complete = None
     for path_to_key in paths_to_keys:
         steps = len(path_to_key.steps) + minimum_steps(caves_state.collect_key(path_to_key))
@@ -234,7 +230,9 @@ def main():
     caves = Caves()
 
     inputFile = basename(__file__)[:2] + '-input.txt'
-    # inputFile = basename(__file__)[:2] + '-1-example-4.txt'
+    # inputFile = basename(__file__)[:2] + '-1-example-2.txt'  # 132
+    # inputFile = basename(__file__)[:2] + '-1-example-3.txt'  # 136
+    # inputFile = basename(__file__)[:2] + '-1-example-4.txt'  # 81
     keys = {}
     doors = {}
     y = 0
@@ -259,6 +257,7 @@ def main():
     print(minimum_steps(initial_state))
 
     # 5210 too high
+    # 5198 correct
 
 
 if __name__ == "__main__":
