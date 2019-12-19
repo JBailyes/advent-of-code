@@ -113,23 +113,25 @@ class Intersection:
     def alignment_param(self) -> int:
         return self.pos.x * self.pos.y
 
+
 class Route:
     def __init__(self):
         self.moves: List[str] = []
         self.visited: Dict[XY, int] = {}
-
-    def add(self, coord: XY, move: str):
-        self.moves.append(move)
-        self.visited[coord]
 
 
 class Move:
     def __init__(self, direction: str, distance: int):
         self.direction = direction
         self.distance = distance
+        self.ascii: str = self.direction + ',' + str(self.distance)
+        self.str = self.direction + str(self.distance)
 
     def __str__(self):
-        return self.direction + ',' + str(self.distance)
+        return self.str
+
+    def __repr__(self):
+        return self.str
 
     def __eq__(self, other):
         return self.direction == other.direction and self.distance == other.distance
@@ -140,15 +142,22 @@ class Function:
         self.moves = moves
         self.matches: List[int] = []  # Start positions where function matches some moves
         self._coverage = set()
+        self.ascii = ','.join([move.ascii for move in self.moves])
+        self.str = ' '.join([move.str for move in self.moves])
 
     def ascii_len(self):
-        return len(self.__str__())
+        return len(self.ascii)
 
     def moves_len(self):
         return len(self.moves)
 
     def applies_to(self, moves: List[Move]) -> bool:
-        return self.moves == moves
+        if len(moves) != len(self.moves):
+            return False
+        for i, func_move in enumerate(self.moves):
+            if func_move != moves[i]:
+                return False
+        return True
 
     def add_match(self, position):
         self.matches.append(position)
@@ -161,56 +170,61 @@ class Function:
         return self._coverage
 
     def __str__(self):
-        return ','.join([str(move) for move in self.moves])
+        return self.str
 
     def __repr__(self):
-        return self.__str__()
+        return self.str
 
 
 def calculate_functions(moves: List[Move]):
     functions: Dict[str, Function] = {}
-    for sequence_len in range(1, 8):  # Any longer than 5 are guaranteed to be > 20 chars
+    for sequence_len in range(1, 9):  # Any longer than 5 are guaranteed to be > 20 chars
         for i in range(0, len(moves) - sequence_len):
             function = Function(moves[i:i + sequence_len])
-            # if function.len() > 20:
+            # if function.ascii_len() > 20:
             #     continue
             if function not in functions.keys():
                 functions[str(function)] = function
             functions[str(function)].matches.append(i)
 
-    best_combo = []
-    best_combo_coverage = 0
+    viable_combo = []
+
+    # a = Function([
+    #     Move('L', 12), Move('R', 12), Move('L', 12)
+    # ])
+    # b = Function([
+    #     Move('R', 12), Move('R', 12), Move('L', 12), Move('R', 8), Move('R', 8),
+    #     Move('L', 12), Move('R', 8), Move('R', 8)
+    # ])
+    # c = Function([
+    #     Move('R', 10), Move('L', 8), Move('L', 12)
+    # ])
+
     for a, b, c in combinations(functions.values(), 3):
         possibilities = apply_functions(moves, a, b, c)
         if len(possibilities) > 0:
             print('got options:')
             for sequence in possibilities:
                 print(sequence)
+        viable_combo = possibilities[0]
 
-
-        # Rule-out functions that overlap
-        # if a.coverage().intersection(b.coverage()):
-        #     continue
-        # if a.coverage().intersection(c.coverage()):
-        #     continue
-        # if b.coverage().intersection(c.coverage()):
-        #     continue
-        #
-        # # Calculate how many of the moves are covered by this combo of functions
-        # moves_covered = len(a.coverage() | b.coverage() | c.coverage())
-        # if moves_covered > best_combo_coverage:
-        #     best_combo = [a, b, c]
-        #     best_combo_coverage = moves_covered
-
-    return best_combo
+    return viable_combo
 
 
 def apply_functions(moves: List[Move], a: Function, b: Function, c: Function) -> List[List[Function]]:
     options = []
     for func in [a, b, c]:
-        if len(moves) >= func.moves_len() and func.applies_to(moves[:func.moves_len()]):
-            for sequence in apply_functions(moves[func.moves_len():], a, b, c):
-                options.append([func] + sequence)
+        if len(moves) == func.moves_len():
+            applies = func.applies_to(moves)
+            if applies:
+                options.append([func])
+        elif len(moves) > func.moves_len():
+            next_moves = moves[:func.moves_len()]
+            applies = func.applies_to(next_moves)
+            if applies:
+                matching_sequences = apply_functions(moves[func.moves_len():], a, b, c)
+                for matching_sequence in matching_sequences:
+                    options.append([func] + matching_sequence)
     return options
 
 
@@ -231,57 +245,7 @@ def main():
     for function in functions:
         print(function)
 
-    # match_positions = []
-    # for pattern_len in range(1, 8):
-    #     found = set()
-    #     for i in range(0, len(moves) - pattern_len):
-    #         pattern = moves[i:i + pattern_len]
-    #         pattern_str = ' '.join(pattern)
-    #         if len(pattern_str.replace('  ', ' ').replace(' ', ',')
-    #                        .rstrip(',').replace('L', 'L,').replace('R', 'R,')) > 20:
-    #             continue
-    #         if pattern_str not in found:
-    #             found.add(pattern_str)
-    #             matches_str = ''
-    #             matches = 0
-    #             moves_matched = set()
-    #             j = 0
-    #             while j <= len(moves) - pattern_len:
-    #                 if moves[j:j + pattern_len] == pattern:
-    #                     matches_str += ' '.join(pattern) + '|'
-    #                     matches += 1
-    #
-    #                     for pos_matched in range(j, j + pattern_len):
-    #                         moves_matched.add(pos_matched)
-    #                     j += pattern_len
-    #                 else:
-    #                     matches_str += '    '
-    #                     j += 1
-    #                     # print(blanks, end='')
-    #             if matches > 0:
-    #                 print(matches_str, end=' poses:')
-    #                 print(moves_matched)
-    #                 match_positions.append({'positions': moves_matched, 'string': matches_str})
-    #
-    # best_combo_patterns = []
-    # best_combo = set()
-    # for patterns in combinations(match_positions, 3):
-    #     if patterns[0]['positions'] & patterns[1]['positions'] or \
-    #         patterns[0]['positions'] & patterns[2]['positions'] or \
-    #             patterns[1]['positions'] & patterns[2]['positions']:
-    #         continue
-    #     combo = patterns[0]['positions'] | patterns[1]['positions'] | patterns[2]['positions']
-    #     coverage = len(combo)
-    #     if coverage > len(best_combo):
-    #         best_combo = combo
-    #         best_combo_patterns = [patterns[0], patterns[1], patterns[2]]
-    # print('')
-    # print('Best patterns:')
-    # print(best_combo_patterns[0]['string'], best_combo_patterns[0]['positions'])
-    # print(best_combo_patterns[1]['string'], best_combo_patterns[1]['positions'])
-    # print(best_combo_patterns[2]['string'], best_combo_patterns[2]['positions'])
-
-
+    # No viabe options - Need a new route around the scaffold
     exit()
 
     inputFile = basename(__file__)[:2] + '-input.txt'
