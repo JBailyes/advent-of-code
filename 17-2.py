@@ -1,11 +1,13 @@
 from os.path import basename
 
 import colorama
+import re
 from colorama import Fore, Back
 
 from computer import Computer
 from itertools import combinations
 from typing import Dict, List, Set
+
 
 def parse(code_line):
     programme = []
@@ -54,11 +56,10 @@ class Image:
 
     def __init__(self):
         self._pixels: dict = {}
-        self._min_x = 0
+        self._min_x = 1
         self._max_x = 0
-        self._min_y = 0
+        self._min_y = 1
         self._max_y = 0
-        self.oxygen = None
         self.droid_loc = XY(0, 0)
 
     def pixels_xy(self):
@@ -77,7 +78,7 @@ class Image:
         self._max_y = max(coord.y, self._max_y)
 
     def draw(self):
-        for y in range(self._max_y, self._min_y - 1, -1):
+        for y in range(self._min_y, self._max_y + 1):
             for x in range(self._min_x, self._max_x + 1):
                 coord = XY(x, y)
                 value = self.get(coord)
@@ -92,7 +93,7 @@ class Image:
 
     def __str__(self):
         image = ''
-        for y in range(self._max_y, self._min_y - 1, -1):
+        for y in range(self._min_y, self._max_y + 1):
             for x in range(self._min_x, self._max_x + 1):
                 coord = XY(x, y)
                 if coord in self._pixels.keys():
@@ -178,7 +179,7 @@ class Function:
 
 def calculate_functions(moves: List[Move]):
     functions: Dict[str, Function] = {}
-    for sequence_len in range(1, 9):  # Any longer than 5 are guaranteed to be > 20 chars
+    for sequence_len in range(1, 6):  # Any longer than 5 are guaranteed to be > 20 chars
         for i in range(0, len(moves) - sequence_len):
             function = Function(moves[i:i + sequence_len])
             # if function.ascii_len() > 20:
@@ -228,25 +229,92 @@ def apply_functions(moves: List[Move], a: Function, b: Function, c: Function) ->
     return options
 
 
+class Direction:
+    def __init__(self, value):
+        self.val = value
+        self.left = None
+        self.right = None
+
+    def __repr__(self):
+        return self.val
+
+
+class VacuumRobot:
+    def __init__(self, start_pos):
+        self.route = ''
+        self.pos = start_pos
+
+        up = Direction('^')
+        down = Direction('v')
+        left = Direction('<')
+        right = Direction('>')
+
+        up.left = left
+        up.right = right
+        
+        down.left = right
+        down.right = left
+        
+        left.left = down
+        left.right = up
+        
+        right.left = up
+        right.right = down
+
+        self.direction = up
+
+    def _pos_by_direction(self, direction: Direction) -> XY:
+        return {
+            '^': self.pos.up(),
+            '<': self.pos.left(),
+            '>': self.pos.right(),
+            'v': self.pos.down(),
+        }[direction.val]
+
+    def pos_ahead(self):
+        return self._pos_by_direction(self.direction)
+
+    def pos_left(self):
+        return self._pos_by_direction(self.direction.left)
+
+    def pos_right(self):
+        return self._pos_by_direction(self.direction.right)
+
+    def move_ahead(self):
+        self.pos = self._pos_by_direction(self.direction)
+        self.route += '>'
+
+    def turn_left(self):
+        self.direction = self.direction.left
+        self.route += 'L'
+
+    def turn_right(self):
+        self.direction = self.direction.right
+        self.route += 'R'
+
+
+def find_route(image: Image, start: XY) -> List[Move]:
+    end = XY(25, 9)
+    robot = VacuumRobot(start)
+    while robot.pos != end:
+        if image.get(robot.pos_ahead()) == '#':
+            robot.move_ahead()
+        elif image.get(robot.pos_right()) == '#':
+            robot.turn_right()
+        elif image.get(robot.pos_left()) == '#':
+            robot.turn_left()
+
+    moves: List[Move] = []
+    for match in re.finditer(r'(([RL])(>+))', robot.route):
+        direction = match.group(2)
+        amount = len(match.group(3))
+        moves.append(Move(direction, amount))
+
+    return moves
+
+
 def main():
     colorama.init()
-
-    move_strings = [
-        'L12', 'R12', 'L12', 'R12', 'R12', 'L12', 'R8 ', 'R8 ', 'L12', 'R8 ', 'R8 ', 'R10', 'L8 ', 'L12', 'R10', 'L8 ',
-        'L12', 'R12', 'R12', 'L12', 'R8 ', 'R8 ', 'L12', 'R8 ', 'R8 ', 'R10', 'L8 ', 'L12', 'R12', 'R12', 'L12', 'R8 ',
-        'R8 ', 'L12', 'R8 ', 'R8 '
-    ]
-    print(' '.join(move_strings))
-
-    moves = []
-    for move_str in move_strings:
-        moves.append(Move(move_str[0], int(move_str.strip()[1:])))
-    functions = calculate_functions(moves)
-    for function in functions:
-        print(function)
-
-    # No viabe options - Need a new route around the scaffold
-    exit()
 
     inputFile = basename(__file__)[:2] + '-input.txt'
     lines = []
@@ -261,33 +329,30 @@ def main():
 
     raw_image = ''
 
-    y = 0
-    x = 0
+    start = XY(1, 1)
+    y = 1
+    x = 1
     while computer.has_output():
         char = str(chr(computer.read()))
         raw_image += char
         if char == '\n':
             y += 1
-            x = 0
+            x = 1
             continue
-        image.set(XY(x, y), char)
+        coord = XY(x, y)
+        if char == '^':
+            start = coord
+        image.set(coord, char)
         x += 1
-
-    inters = []
-    for coord in image.pixels_xy():
-        if image.get(coord) in '#<>^v':
-            if image.get(coord.up()) + image.get(coord.down()) + \
-               image.get(coord.left()) + image.get(coord.right()) == '####':
-                image.set(coord, 'O')
-                inters.append(Intersection(coord))
 
     image.draw()
 
-    sum = 0
-    for inter in inters:
-        sum += inter.alignment_param()
+    moves = find_route(image, start)
+    print(moves)
 
-    print(sum)
+    functions = calculate_functions(moves)
+    for function in functions:
+        print(function)
 
     programme[0] = 2
     computer = Computer(programme.copy(), [], debug=False)
