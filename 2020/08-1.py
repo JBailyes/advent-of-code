@@ -34,7 +34,7 @@ def main():
     line = 0
     while running:
         if line in executed:
-            print(accumulator)
+            print(accumulator)  # 1137
             exit()
         executed.append(line)
         instruction = programme[line]
