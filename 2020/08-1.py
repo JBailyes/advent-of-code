@@ -34,8 +34,8 @@ def main():
     line = 0
     while running:
         if line in executed:
-            print(executed[-1])
-            exit
+            print(accumulator)
+            exit()
         executed.append(line)
         instruction = programme[line]
         if instruction.name == 'acc':
