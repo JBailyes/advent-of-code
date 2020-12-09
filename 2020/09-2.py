@@ -22,7 +22,7 @@ def main():
         sum = 0
         constituents = []
         j = i
-        while j < len(numbers) and sum != target:
+        while j < len(numbers) and sum < target:
             current_number = numbers[j]
             constituents.append(current_number)
             sum += current_number
