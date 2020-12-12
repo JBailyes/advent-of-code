@@ -5,7 +5,8 @@ import os
 def main():
     day = os.path.basename(__file__).split('-')[0]
     challenge_input = '{}-input.txt'.format(day)
-    # challenge_input = '{}-example.txt'.format(day)
+    # challenge_input = '{}-example-1.txt'.format(day)
+    # challenge_input = '{}-example-2.txt'.format(day)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', default=challenge_input)
