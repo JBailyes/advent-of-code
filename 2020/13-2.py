@@ -16,9 +16,9 @@ def main():
         for line in infile:
             lines.append(line.strip())
 
-    # lines = []
-    # lines.append('')
-    # lines.append('7,13,x,x,59,x,31,19')
+    lines = []
+    lines.append('')
+    lines.append('7,13,x,x,59,x,31,19')
     # lines.append('17,x,13,19')
     # lines.append('67,7,59,61')
     # lines.append('67,x,7,59,61')
@@ -36,7 +36,7 @@ def main():
     found = False
     time = 0
     while not found:
-        offsets = buses.keys()
+        offsets = list(buses.keys())
         found = True
         for offset in offsets:
             if found and (time + offset) % buses[offset] != 0:
@@ -44,7 +44,7 @@ def main():
         if found:
             print('timestamp:', time)
         else:
-            time += buses[0]
+            time += buses[0] * buses[offsets[1]]
 
 
 if __name__ == "__main__":
