@@ -1,5 +1,4 @@
 import argparse
-import itertools
 import os
 import re
 
@@ -19,6 +18,7 @@ def main():
             lines.append(line.strip())
 
     bit_masks = [2 ** n for n in range(36)]
+    ALL_SET = 2 ** 36 - 1
 
     programme = {}
     for line in lines:
@@ -29,11 +29,9 @@ def main():
             for i in range(36):
                 if mask_str[35 - i] == 'X':
                     x_bits.append(i)
-            all_set = 2 ** (len(x_bits) + 1) - 1
             for combo in range(2 ** len(x_bits)):  # All possible combinations of 1s and 0s, as decimal integers
                 combo_or_mask = 0
-                combo_and_mask = all_set
-                combo_str = '{0:b}'.format(combo)
+                combo_and_mask = ALL_SET
                 for i in range(len(x_bits)):
                     x_bit_to_set = x_bits[i]
                     x_bit_mask = bit_masks[x_bit_to_set]
@@ -54,7 +52,6 @@ def main():
                 address = masked_address & and_mask | or_mask
                 programme[address] = value
 
-    # 2506753223342 is too low
     print('sum:', sum(programme.values()))
 
 
