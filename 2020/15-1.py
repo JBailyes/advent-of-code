@@ -19,10 +19,10 @@ def main():
 
     last_number = starting_numbers[-1]
     while turn < 10:
-        if last_number not in history.keys():
+        if history[last_number].count(last_number) == 1:
             new_number = 0
         else:
-            new_number = turn - history[last_number][-1]
+            new_number = history[last_number][-1] - history[last_number][-2]
 
         if new_number not in history.keys():
             history[new_number] = []
