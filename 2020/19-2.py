@@ -28,10 +28,10 @@ def main():
         for unresolved_rule_number, unresolved_rule in unresolved_rules.items():
             updated_rule = unresolved_rule
             for rule_number, rule_regex in rules.items():
-                if len(rule_regex) == 1:
-                    rule = rule_regex
+                if '|' in rule_regex:
+                    rule = '(' + rule_regex + ')'
                 else:
-                    rule = '({})'.format(rule_regex)
+                    rule = rule_regex
                 updated_rule = re.sub(r'\b{}\b'.format(rule_number), rule, updated_rule)
             if not re.search(r'\d', updated_rule):
                 rules[unresolved_rule_number] = updated_rule.replace(' ', '')
@@ -40,14 +40,27 @@ def main():
             unresolved_rules.pop(rule_number, None)
         print(unresolved_rules)
 
+    rules[8] = '(' + rules[8] + ')+'
+
     print('Rules:')
     for number, rule in sorted(rules.items()):
         print(number, ':', rule)
 
+    def rule11(text):
+        if re.fullmatch(rules[42] + rules[31], text):
+            return True
+        match = re.fullmatch(r'{}(.){}'.format(rules[42], rules[31]), text)
+        if match:
+            return rule11(match.group(1))
+        return False
+
     matches = 0
     for message in messages:
-        if re.fullmatch(rules[0], message):
+        rule8 = re.match(rules[8], message)
+        if rule8 and rule11(message[rule8.end():]):
             matches += 1
+
+    # 122 too low
     print('matches:', matches)
 
 

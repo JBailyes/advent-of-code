@@ -1,40 +1,38 @@
-import argparse
-import os
+import math
+
+from aocutils import load_input
 
 
 def main():
-    day = os.path.basename(__file__).split('-')[0]
-    challenge_input = '{}-input.txt'.format(day)
-    # challenge_input = '{}-example.txt'.format(day)
+    puzzle_input = load_input(__file__)
+    # puzzle_input = load_input(__file__, 'example')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input', default=challenge_input)
-    args = parser.parse_args()
-
-    lines = []
-    with open(args.input, 'r') as infile:
-        for line in infile:
-            lines.append(line.strip())
-
-    lines = []
-    lines.append('')
-    lines.append('7,13,x,x,59,x,31,19')
-    # lines.append('17,x,13,19')
-    # lines.append('67,7,59,61')
-    # lines.append('67,x,7,59,61')
-    # lines.append('67,7,x,59,61')
-    # lines.append('1789,37,47,1889')
+    # puzzle_input = []
+    # puzzle_input.append('')
+    # puzzle_input.append('7,13,x,x,59,x,31,19')
+    # puzzle_input.append('17,x,13,19')
+    # puzzle_input.append('67,7,59,61')
+    # puzzle_input.append('67,x,7,59,61')
+    # puzzle_input.append('67,7,x,59,61')
+    # puzzle_input.append('1789,37,47,1889')
 
     buses = {}
-    route_time_strings = lines[1].split(',')
+    route_time_strings = puzzle_input[1].split(',')
     for i in range(len(route_time_strings)):
         route_time_string = route_time_strings[i]
         if route_time_string == 'x':
             continue
         buses[i] = int(route_time_string)
+        print(buses[i], 'position', i)
+
+    first_bus = buses[0]
+    lcm = first_bus
+    if first_bus in buses.keys():
+        lcm = math.lcm(first_bus, buses[first_bus])
+        print('buses[0] ({}) lcm with buses[{}] ({}) = {}'.format(first_bus, first_bus, buses[first_bus], lcm))
 
     found = False
-    time = 0
+    time = lcm - 7
     while not found:
         offsets = list(buses.keys())
         found = True
@@ -44,7 +42,7 @@ def main():
         if found:
             print('timestamp:', time)
         else:
-            time += buses[0] * buses[offsets[1]]
+            time += lcm
 
 
 if __name__ == "__main__":
