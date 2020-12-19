@@ -41,9 +41,6 @@ def main():
             unresolved_rules.pop(rule_number, None)
         print(unresolved_rules)
 
-    rules[8] = '(' + rules[8] + ')+'
-    rules[0] = r'({})({})+({})+'.format(rules[42], rules[42], rules[31])
-
     print('Rules:')
     for number, rule in sorted(rules.items()):
         print(number, ':', rule)
