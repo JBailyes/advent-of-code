@@ -6,6 +6,7 @@ import re
 def main():
     puzzle_input = load_input(__file__)
     # puzzle_input = load_input(__file__, 'example')
+    # puzzle_input = load_input(__file__, 'example2')
 
     unresolved_rules = {}
     rules = {}
@@ -41,26 +42,39 @@ def main():
         print(unresolved_rules)
 
     rules[8] = '(' + rules[8] + ')+'
+    rules[0] = r'({})({})+({})+'.format(rules[42], rules[42], rules[31])
 
     print('Rules:')
     for number, rule in sorted(rules.items()):
         print(number, ':', rule)
 
-    def rule11(text):
-        if re.fullmatch(rules[42] + rules[31], text):
+    def rule0(text):
+        # Use named groups because the inserted rules will be full of groups too
+        even_42_31 = r'(?P<r42>{})(?P<middle>.+)(?P<r31>{})'.format(rules[42], rules[31])
+
+        # Must have at least one top-level match of this pattern for rule 0 to be valid
+        rule0_match = re.fullmatch(even_42_31, text)
+        if rule0_match:
+            # This inner rule could potentially only match rule 42
+            return rule0_inner(rule0_match.group('middle'))
+        return False
+
+    def rule0_inner(text):
+        # Use named groups because the inserted rules will be full of groups too
+        even_42_31 = r'(?P<r42>{})(?P<middle>.+)(?P<r31>{})'.format(rules[42], rules[31])
+
+        rule0_match = re.fullmatch(even_42_31, text)
+        if rule0_match:
+            return rule0_inner(rule0_match.group('middle'))
+        if re.fullmatch(r'({})+'.format(rules[42]), text):
             return True
-        match = re.fullmatch(r'{}(.){}'.format(rules[42], rules[31]), text)
-        if match:
-            return rule11(match.group(1))
         return False
 
     matches = 0
     for message in messages:
-        rule8 = re.match(rules[8], message)
-        if rule8 and rule11(message[rule8.end():]):
+        if rule0(message):
             matches += 1
 
-    # 122 too low
     print('matches:', matches)
 
 
