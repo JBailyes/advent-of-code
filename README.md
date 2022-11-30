@@ -9,3 +9,5 @@ I started 2015's challenge in 2020, using Python 3.9
 2019 was probably Python 3.7
 
 2020 started in Python 3.7, but quickly switched to 3.9
+
+2022 Python 3.11
