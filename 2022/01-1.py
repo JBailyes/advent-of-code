@@ -1,5 +1,3 @@
-import re
-
 from aocutils import load_input
 
 
@@ -15,7 +13,7 @@ def main():
             totals.append(current_total)
             current_total = 0
         else:
-            current_total += int(line)
+            current_total += int(line)  # Bug that didn't happen to affect my input: the last line inthe file won't get added to the total
     
     # Correct answer: 69289
     print(max(totals))

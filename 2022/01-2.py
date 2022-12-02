@@ -1,5 +1,3 @@
-import re
-
 from aocutils import load_input
 
 
