@@ -7,7 +7,6 @@ def main():
     puzzle_input = load_input(__file__)
     # puzzle_input = load_input(__file__, 'example')
 
-    string.ascii_letters
     sum = 0
 
     for line in puzzle_input:
