@@ -15,12 +15,12 @@ def main():
         elf_2_assigned = set(range(elf_2_start, elf_2_end + 1))
 
         overlap = elf_1_assigned & elf_2_assigned
-        if overlap == elf_1_assigned or overlap == elf_2_assigned:
+        if overlap:
             count += 1
 
     print(count)
     
-    # Correct answer: 511
+    # Correct answer: 821
 
 
 if __name__ == "__main__":
