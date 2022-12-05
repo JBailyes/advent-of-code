@@ -8,6 +8,6 @@ def load_input(file_name, input_name='input') -> list[str]:
     lines = []
     with open(challenge_input, 'r') as infile:
         for line in infile:
-            lines.append(line.strip())
+            lines.append(line.strip('\n'))
 
     return lines
