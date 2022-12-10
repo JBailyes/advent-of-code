@@ -3,7 +3,7 @@ import os
 import re
 import requests
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from termcolor import colored
 
 containing_dir = os.path.dirname(__file__)
@@ -19,27 +19,36 @@ if not response.ok:
     print(response.text)
     exit(1)
 
-data = str(response.text)
+raw_data = str(response.text)
+data = json.loads(raw_data)
 
 readable_data = json.loads(
         re.sub('_ts": *([0-9]+)',
             lambda match : '_ts":"' + str(datetime.fromtimestamp(int(match.group(1)))) + '"', 
-            data))
+            raw_data))
 
 day_summaries = {}
 
-for member in readable_data['members'].values():
+for member in data['members'].values():
     name = member['name']
     for day_num in sorted(member['completion_day_level']):
-        star_times = []
+        day_info: dict = day_summaries.setdefault(f'{day_num:>02}', {})
+
         for star_num in sorted(member['completion_day_level'][day_num]):
-
-            day_info: dict = day_summaries.setdefault(f'{day_num:>02}', {})
             star_info: list = day_info.setdefault(star_num, [])
-
             star = member['completion_day_level'][day_num][star_num]
-            star_time = star['get_star_ts']
-            star_info.append({ 'name': name, 'time': star_time})
+            star_time_ts = int(star['get_star_ts'])
+            star_time = str(datetime.fromtimestamp(star_time_ts))
+            star_info.append({ 'name': name, 'time': star_time, 'ts': star_time_ts})
+        
+        if '2' in member['completion_day_level'][day_num]:
+            star_1_ts = day_info['1'][-1]['ts']
+            star_2_ts = day_info['2'][-1]['ts']
+            diff_total_secs = star_2_ts - star_1_ts
+            diff_mins = int(diff_total_secs / 60)
+            diff_secs = diff_total_secs - diff_mins * 60
+            day_info['2'][-1]['diff'] = f'{diff_mins:>02}:{diff_secs:>02}'
+        
 
 for day in sorted(day_summaries):
     day_date = f'2022-12-{day:>02}'
@@ -51,7 +60,8 @@ for day in sorted(day_summaries):
         for star_info in sorted(day_summaries[day][star], key=lambda x : x['time']):
             name = star_info['name']
             time = star_info['time'].replace(f'{day_date} ', '')
-            star_infos.append(f'{time} {name}')
+            diff = f' ({star_info["diff"]})' if 'diff' in star_info else ''
+            star_infos.append(f'{time}{diff} {name}')
         print('\n    '.join(star_infos))
         print()
 
