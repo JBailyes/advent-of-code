@@ -4,6 +4,7 @@ import re
 import requests
 
 from datetime import datetime
+from termcolor import colored
 
 containing_dir = os.path.dirname(__file__)
 
@@ -33,7 +34,7 @@ for member in readable_data['members'].values():
         star_times = []
         for star_num in sorted(member['completion_day_level'][day_num]):
 
-            day_info: dict = day_summaries.setdefault(day_num, {})
+            day_info: dict = day_summaries.setdefault(f'{day_num:>02}', {})
             star_info: list = day_info.setdefault(star_num, [])
 
             star = member['completion_day_level'][day_num][star_num]
@@ -45,7 +46,7 @@ for day in sorted(day_summaries):
     print(f'Day {day}')
     for star in sorted(day_summaries[day]):
         star_str = '*' * int(star)
-        print(f'{star_str:2}  ', end='')
+        print(colored(f'{star_str:2}  ', 'yellow', attrs=['bold']), end='')
         star_infos = []
         for star_info in sorted(day_summaries[day][star], key=lambda x : x['time']):
             name = star_info['name']
