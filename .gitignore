@@ -1,5 +1,5 @@
 *.pyc
 __pycache__/
 leaderboard-*
-leaderboard.json
+leaderboard*.json
 leaderboard.txt

@@ -3,7 +3,7 @@ import os
 import re
 import requests
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from termcolor import colored
 
 containing_dir = os.path.dirname(__file__)
@@ -12,7 +12,7 @@ with open(f'{containing_dir}/leaderboard-settings.json', 'r') as settings_file:
     settings = json.load(settings_file)
 
 readable_outfile = f'{containing_dir}/leaderboard.json'
-summary_outfile = f'{containing_dir}/leaderboard.txt'
+original_outfile = f'{containing_dir}/leaderboard.original.json'
 
 response = requests.get(settings['url'], cookies={ 'session': settings['session'] })
 if not response.ok:
@@ -21,51 +21,92 @@ if not response.ok:
 
 raw_data = str(response.text)
 data = json.loads(raw_data)
+with open(original_outfile, 'w') as fileout:
+    json.dump(data, fileout, indent=4)
 
 readable_data = json.loads(
         re.sub('_ts": *([0-9]+)',
             lambda match : '_ts":"' + str(datetime.fromtimestamp(int(match.group(1)))) + '"', 
             raw_data))
-
-day_summaries = {}
-
-for member in data['members'].values():
-    name = member['name']
-    for day_num in sorted(member['completion_day_level']):
-        day_info: dict = day_summaries.setdefault(f'{day_num:>02}', {})
-
-        for star_num in sorted(member['completion_day_level'][day_num]):
-            star_info: list = day_info.setdefault(star_num, [])
-            star = member['completion_day_level'][day_num][star_num]
-            star_time_ts = int(star['get_star_ts'])
-            star_time = str(datetime.fromtimestamp(star_time_ts))
-            star_info.append({ 'name': name, 'time': star_time, 'ts': star_time_ts})
-        
-        if '2' in member['completion_day_level'][day_num]:
-            star_1_ts = day_info['1'][-1]['ts']
-            star_2_ts = day_info['2'][-1]['ts']
-            diff_total_secs = star_2_ts - star_1_ts
-            diff_mins = int(diff_total_secs / 60)
-            diff_secs = diff_total_secs - diff_mins * 60
-            day_info['2'][-1]['diff'] = f'{diff_mins:>02}:{diff_secs:>02}'
-        
-
-for day in sorted(day_summaries):
-    day_date = f'2022-12-{day:>02}'
-    print(f'Day {day}')
-    for star in sorted(day_summaries[day]):
-        star_str = '*' * int(star)
-        print(colored(f'{star_str:2}  ', 'yellow', attrs=['bold']), end='')
-        star_infos = []
-        for star_info in sorted(day_summaries[day][star], key=lambda x : x['time']):
-            name = star_info['name']
-            time = star_info['time'].replace(f'{day_date} ', '')
-            diff = f' ({star_info["diff"]})' if 'diff' in star_info else ''
-            star_infos.append(f'{time}{diff} {name}')
-        print('\n    '.join(star_infos))
-        print()
-
-
 with open(readable_outfile, 'w') as fileout:
     json.dump(readable_data, fileout, indent=4)
 
+
+class Star():
+    def __init__(self, number: int, ts: int, person:str) -> None:
+        self.number: int = number
+        self.ts: int = ts
+        self.person: str = person
+    
+    def get_ts(self) -> int:
+        return self.ts
+
+
+class Day():
+    def __init__(self, num:str) -> None:
+        self.number = f'{num:>02}'
+        self.first_stars: list[Star] = []
+        self.second_stars: list[Star] = []
+        self.first_star_by_person: dict[str, Star] = {}
+        self.second_star_by_person: dict[str, Star] = {}
+    
+    def add_star(self, star: Star):
+        if star.number == 1:
+            self.first_stars.append(star)
+            self.first_star_by_person[star.person] = star
+        else:
+            self.second_stars.append(star)
+            self.second_star_by_person[star.person] = star
+    
+
+days: dict[str, Day] = {}
+for day_num in range(1, 25):
+    days[day_num] = Day(day_num)
+
+# Get the JSON data into more suitable structures
+for member in data['members'].values():
+    person = member['name']
+    for day_str in sorted(member['completion_day_level']):
+        day: Day = days[int(day_str)]
+        for star_str in sorted(member['completion_day_level'][day_str]):
+            star_num = int(star_str)
+            star_time_ts = member['completion_day_level'][day_str][star_str]['get_star_ts']
+            day.add_star(Star(star_num, star_time_ts, person))
+
+
+for day_num in sorted(days):
+    day = days[day_num]
+
+    if not day.first_stars:
+        continue
+
+    print(f'Day {day_num}')
+
+    day_date = f'2022-12-{day_num:>02} '
+    ordered_first_stars:list[Star] = sorted(day.first_stars, key=Star.get_ts)
+    ordered_second_stars:list[Star] = sorted(day.second_stars, key=Star.get_ts)
+
+    col_1:list[str] = []
+    col_2:list[str] = []
+
+    for star_1 in ordered_first_stars:
+        star_time = str(datetime.fromtimestamp(star_1.ts)).replace(day_date, '')
+        col_1.append(f'{star_time} {star_1.person}')
+
+    for star_2 in ordered_second_stars:
+        star_2_time = str(datetime.fromtimestamp(star_2.ts)).replace(day_date, '')
+        star_1 = day.first_star_by_person[star_2.person]
+        seconds_between_stars = star_2.ts - star_1.ts
+        diff_mins = int(seconds_between_stars / 60)
+        diff_secs = seconds_between_stars - diff_mins * 60
+        diff_str = f'{diff_mins:>02}:{diff_secs:>02}'
+        col_2.append(f'{star_2_time} ({diff_str}) {star_2.person}')
+    
+    col_1_width:int = max([len(text) for text in col_1])
+
+    star = colored('*', 'yellow', attrs=['bold'])
+    for line in range(len(col_1)):
+        col_1_str = f'{star} {col_1[line]:{col_1_width}}'
+        col_2_str = f'{star}{star} {col_2[line]}' if len(col_2) > line else ''
+        print(f'{col_1_str}    {col_2_str}')
+    print()
