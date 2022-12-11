@@ -42,6 +42,16 @@ class Star():
         return self.ts
 
 
+class Star2(Star):
+    def __init__(self, number: int, ts: int, diff:int, person:str) -> None:
+        super().__init__(number, ts, person)
+        self.diff:int = diff
+        self.fastest:bool = False
+    
+    def get_diff(self) -> int:
+        return self.diff
+
+
 class Day():
     def __init__(self, num:str) -> None:
         self.number = f'{num:>02}'
@@ -71,7 +81,16 @@ for member in data['members'].values():
         for star_str in sorted(member['completion_day_level'][day_str]):
             star_num = int(star_str)
             star_time_ts = member['completion_day_level'][day_str][star_str]['get_star_ts']
-            day.add_star(Star(star_num, star_time_ts, person))
+
+            if star_num == 1:
+                star = Star(star_num, star_time_ts, person)
+            else:
+                star_1 = day.first_star_by_person[person]
+                seconds_between_stars = star_time_ts - star_1.ts
+                star = Star2(star_num, star_time_ts, seconds_between_stars, person)
+
+            day.add_star(star)
+
 
 
 for day_num in sorted(days):
@@ -79,6 +98,9 @@ for day_num in sorted(days):
 
     if not day.first_stars:
         continue
+
+    if day.second_stars:
+        fastest_2nd = sorted(day.second_stars, key=Star2.get_diff)[0]
 
     print(f'Day {day_num}')
 
@@ -95,12 +117,15 @@ for day_num in sorted(days):
 
     for star_2 in ordered_second_stars:
         star_2_time = str(datetime.fromtimestamp(star_2.ts)).replace(day_date, '')
-        star_1 = day.first_star_by_person[star_2.person]
-        seconds_between_stars = star_2.ts - star_1.ts
+        seconds_between_stars = star_2.diff
         diff_mins = int(seconds_between_stars / 60)
         diff_secs = seconds_between_stars - diff_mins * 60
         diff_str = f'{diff_mins:>02}:{diff_secs:>02}'
-        col_2.append(f'{star_2_time} ({diff_str}) {star_2.person}')
+        col_2_text = f'{star_2_time} ({diff_str}) {star_2.person}'
+        if star_2 == fastest_2nd:
+            col_2.append(colored(col_2_text, 'green', attrs=['bold']))
+        else:
+            col_2.append(col_2_text)
     
     col_1_width:int = max([len(text) for text in col_1])
 
