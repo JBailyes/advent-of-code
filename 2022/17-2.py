@@ -32,11 +32,6 @@ def main():
             self.y = y
 
 
-    puzzle_input = load_input(__file__)
-    # puzzle_input = load_input(__file__, 'example')
-
-    jet_moves = puzzle_input[0]
-
     chamber = []
     walls = 0b100000001
 
@@ -45,25 +40,41 @@ def main():
     last_rock_type:Rock = '.'
     settled = 0
     move_index = -1
-    chamber_offest = 0
+    chamber_offset = 0
     # while settled < 1_000_000_000_000:
     # while settled < 2022:
 
     # Manual analysis after running to 10,000 settled:
-    # Pettern emerges at 2,335
+    # Pettern emerges after 2,335
     # Pattern is 2,690 lines
     # Outputting on boundaries of pattern shows consistent rock settle of 1,715 per repeat of pattern
-    # Settled rocks at start of first pattern is 1,475
-    # Move index 8,440
-    # 
-    # (1_000_000_000_000 - 1_475) % 1_715 == 255
+    # Settled rocks just before start of first pattern is 1,475
+    # Move index just before start of first pattern is 8,440
 
-    pattern_start = 2_335
-    pattern_size = 2_690
-    pattern_repeats = int((1_000_000_000_000 - 1_475) / 1_715)
-    settled = 1_000_000_000_000 - 255
-    move_index = 8_439
-    chamber_offset = pattern_start + pattern_repeats * pattern_size
+    # # My input:
+    puzzle_input = load_input(__file__)
+    outfile_name = '17-output.txt'
+    last_line_before_pattern = 2_335
+    pattern_size_lines = 2_690
+    move_index = 8_440
+    pattern_emerge_settled = 1_475
+    settle_per_pattern = 1_715
+
+    # # Example input
+    # puzzle_input = load_input(__file__, 'example')
+    # outfile_name = '17-output-example.txt'
+    # last_line_before_pattern = 95
+    # pattern_size_lines = 212
+    # move_index = 14
+    # pattern_emerge_settled = 59
+    # settle_per_pattern = 140
+
+    jet_moves = puzzle_input[0]
+
+    pattern_repeats = int((1_000_000_000_000 - pattern_emerge_settled) / settle_per_pattern)
+    rocks_left_to_settle = (1_000_000_000_000 - pattern_emerge_settled) % settle_per_pattern
+    settled = 1_000_000_000_000 - rocks_left_to_settle
+    chamber_offset = last_line_before_pattern + pattern_repeats * pattern_size_lines
 
     while settled < 1_000_000_000_000:
     # while settled < 2022:
@@ -93,10 +104,6 @@ def main():
         if not blocked:
             rock.bits = shifted_rock
 
-        # for line in rock.bits:
-        #     print(f'{line:09b}'.replace('0', ' '))
-        # print()
-
         blocked = False
         for i, line in enumerate(rock.bits):
             y_down = rock.y + i - 1
@@ -106,38 +113,36 @@ def main():
         if not blocked:
             rock.y -= 1
         else:
-            chamber_min = 0
             for i, line in enumerate(rock.bits):
                 y = rock.y + i
                 if y >= len(chamber):
                     chamber.append(walls)
                 chamber[y] |= line
-                if chamber[y] == 0b111111111:
-                    chamber_min = y
+                if (len(chamber) - last_line_before_pattern) % pattern_size_lines == 0:
+                    display = '|' + f'{chamber[y]:09b}'[1:-1].replace('0', ' ').replace('1', '*') + '|'
+                    print(display, ', line', len(chamber), ', settled rocks', settled, ', move index', move_index)
             settled += 1
             rock = None
-            # if chamber_min:
-            #     chamber = chamber[chamber_min:]
-            #     chamber_offset += chamber_min
-            if settled % 1_000_000 == 0:
-                print(settled, 'settled')
-            if (len(chamber) - 2335) % 2690 == 0:
-            # if len(chamber) % 2690 == 0:
-                print('line', len(chamber), 'settled rocks', settled, 'move index', move_index)
+
+            if (len(chamber) - last_line_before_pattern) % pattern_size_lines == 0:
+                display = '|' + f'{chamber[y]:09b}'[1:-1].replace('0', ' ').replace('1', '*') + '|'
+                print(display, ', line', len(chamber), ', settled rocks', settled, ', move index', move_index)
     
     
-    with open('17-output.txt', 'w') as outfile:
-        for line in reversed(chamber):
-            display = '|' + f'{line:09b}'[1:-1].replace('0', ' ').replace('1', '*') + '|'
-            # print(display)
-            outfile.write(display + '\n')
-    print('+-------+')
-    print()
+    # with open(outfile_name, 'w') as outfile:
+    #     for i, line in enumerate(reversed(chamber)):
+    #         n = len(chamber) - 1 - i
+    #         display = f'{n:5,} |' + f'{line:09b}'[1:-1].replace('0', ' ').replace('1', '*') + '|'
+    #         # print(display)
+    #         outfile.write(display + '\n')
+    # print('+-------+')
+    # print()
     print('tower height', len(chamber) + chamber_offset)
 
     # 1568513119574 is too high
     # 1568513119573 is too high
-    # Correct answer: 
+    # 1568513119570 is too low
+    # Correct answer: 1568513119571
 
 
 if __name__ == "__main__":
