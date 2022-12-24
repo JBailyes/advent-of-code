@@ -96,7 +96,6 @@ def main():
     best_route:Route = None
     evaluated = 0
 
-    # current_valve = valves['AA']
     routes:list[Route] = [Route()]
     while True:
         new_routes:list[Route] = []
